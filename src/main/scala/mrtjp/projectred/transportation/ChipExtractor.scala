@@ -4,6 +4,7 @@ import mrtjp.core.inventory.InvWrapper
 
 import scala.collection.immutable.BitSet
 import scala.collection.mutable.ListBuffer
+import mrtjp.core.item.ItemKeyStack
 
 class ChipExtractor extends RoutingChip with TChipFilter with TChipOrientation {
   private var remainingDelay = operationDelay
@@ -45,6 +46,13 @@ class ChipExtractor extends RoutingChip with TChipFilter with TChipOrientation {
             val stack2 =
               stackKey.makeStack(inv.extractItem(stackKey, toExtract))
             if (stack2.stackSize <= 0) return
+
+            globalItemsRegistry.trackItem(
+              ItemKeyStack.get(stack2),
+              RouterServices.getRouter(s.responder).getParent,
+              trackStage.tsNone,
+              trackStage.tsSendQueue
+            ) // item persistence
 
             routeLayer.queueStackToSend(
               stack2,

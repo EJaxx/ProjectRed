@@ -4,6 +4,7 @@ import mrtjp.core.inventory.InvWrapper
 import mrtjp.core.item.{ItemEquality, ItemKey, ItemKeyStack}
 
 import scala.collection.mutable.{ListBuffer, Set => MSet}
+import mrtjp.projectred.ProjectRedCore.log
 
 class ChipStockKeeper
     extends RoutingChip
@@ -52,7 +53,10 @@ class ChipStockKeeper
       val stockToKeep =
         if (requestMode == 2) Int.MaxValue else filt.getItemCount(keyStack.key)
       val inInventory =
-        inv.getItemCount(keyStack.key) + getEnroute(eq, keyStack.key)
+        inv.getItemCount(keyStack.key) + globalItemsRegistry.countOnRoute(
+          routeLayer.getWorldRouter,
+          eq.apply(keyStack.key)
+        )
       val spaceInInventory =
         routeLayer.getRequester.getActiveFreeSpace(keyStack.key)
       var toRequest = math.min(stockToKeep - inInventory, spaceInInventory)

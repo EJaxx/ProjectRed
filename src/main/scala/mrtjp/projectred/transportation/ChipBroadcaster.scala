@@ -3,8 +3,9 @@ package mrtjp.projectred.transportation
 import mrtjp.core.inventory.InvWrapper
 import mrtjp.core.item.{ItemKey, ItemKeyStack, ItemQueue}
 import mrtjp.projectred.transportation.RoutingChipDefs.ChipVal
+import mrtjp.projectred.ProjectRedCore.log
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{Map => MMap, Set => MSet, ListBuffer}
 
 case class BroadcastObject(stack: ItemKeyStack, requester: IWorldRequester) {
   var priority: Priorities.Priority = null
@@ -18,6 +19,13 @@ trait TActiveBroadcastStack extends RoutingChip {
       requester: IWorldRequester,
       priority: Priorities.Priority
   ) {
+    log.debug(s"addOrder($stack,$requester)")
+    globalItemsRegistry.trackItem(
+      stack,
+      requester,
+      trackStage.tsNone,
+      trackStage.tsOrder
+    ) // item persistence
     orders.find(p =>
       p.stack.key == stack.key && p.requester == requester
     ) match {
@@ -34,16 +42,17 @@ trait TActiveBroadcastStack extends RoutingChip {
   }
 
   def pop(amount: Int) = {
-    val BroadcastObject(stack, _) = orders.head
+    val BroadcastObject(stack, requester) = orders.head
     stack.stackSize -= amount
     if (stack.stackSize <= 0) {
-      orders = orders.tail
+      popAll()
       true
     } else false
   }
 
   def popAll() = {
     val out = orders.head
+    val BroadcastObject(stack, requester) = out
     orders = orders.tail
     out
   }
@@ -132,6 +141,12 @@ trait TActiveBroadcastStack extends RoutingChip {
 
           if (removed > 0) {
             val toSend = stack.key.makeStack(removed)
+            globalItemsRegistry.trackItem(
+              ItemKeyStack.get(toSend),
+              req,
+              trackStage.tsOrder,
+              trackStage.tsSendQueue
+            ) // item persistence
             routeLayer.queueStackToSend(
               toSend,
               invProvider.getInterfacedSide,
@@ -240,6 +255,7 @@ class ChipBroadcaster
   override def getBroadcastPriority = preference
 
   override def onRemoved() {
+    log.debug(s"onRemoved(1)")
     while (hasOrders) {
       val BroadcastObject(s, r) = popAll()
       r.itemLost(s)

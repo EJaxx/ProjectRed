@@ -16,6 +16,9 @@ import net.minecraft.util.{IIcon, MovingObjectPosition}
 import net.minecraft.world.World
 
 import scala.collection.immutable.BitSet
+import scala.collection.mutable.{Set => MSet, Map => MMap, Queue}
+
+import mrtjp.projectred.ProjectRedCore.log
 
 trait IWorldRouter {
   def getRouter: Router
@@ -46,6 +49,7 @@ trait IWorldRouter {
 }
 
 trait IWorldRequester extends IWorldRouter {
+  var ordersToMe = MMap.empty[TActiveBroadcastStack, MSet[ItemKeyStack]]
   def getActiveFreeSpace(item: ItemKey): Int
 }
 
@@ -139,7 +143,7 @@ trait TNetworkPipe
 
   var needsWork = true
 
-  var sendQueue = Seq[NetworkPayload]()
+  var sendQueue = Queue[NetworkPayload]()
   var transitQueue = new ItemQueue
 
   var statsReceived = 0
@@ -225,6 +229,7 @@ trait TNetworkPipe
   protected def countInTransit(key: ItemKey) = transitQueue(key)
 
   private def dispatchQueuedPayload(r: NetworkPayload) {
+    log.debug(s"dispatchQueuedPayload ${r}")
     injectPayload(r, r.input)
     val dest = RouterServices.getRouter(r.destinationIP)
     if (dest != null) {
@@ -384,6 +389,7 @@ trait TNetworkPipe
   }
 
   override def passToInventory(r: NetworkPayload): Boolean = {
+    log.debug(s"passToInventory($r)")
     val savedStack = r.payload.copy
     val passResult = super.passToInventory(r)
     if (passResult) {
@@ -395,6 +401,7 @@ trait TNetworkPipe
   }
 
   override def injectPayload(r: NetworkPayload, in: Int) = {
+    log.debug(s"injectPayload ${r} ${in}")
     super.injectPayload(r, in)
     if (r.netPriority == Priorities.WANDERING)
       r.tickPayloadWander()
@@ -411,10 +418,22 @@ trait TNetworkPipe
   }
 
   override def itemReceived(stack: ItemKeyStack) {
+    globalItemsRegistry.trackItem(
+      stack,
+      this,
+      trackStage.tsPipe,
+      trackStage.tsNone
+    ) // item persistence
     transitQueue.remove(stack.key, stack.stackSize)
   }
 
   override def itemLost(stack: ItemKeyStack) {
+    globalItemsRegistry.trackItem(
+      stack,
+      this,
+      trackStage.tsPipe,
+      trackStage.tsNone
+    ) // item persistence
     transitQueue.remove(stack.key, stack.stackSize)
   }
 
@@ -429,12 +448,24 @@ trait TNetworkPipe
       priority: NetworkPriority,
       destination: Int
   ) {
+    log.debug(s"queueStackToSend ${stack}")
     val stack2 = ItemKeyStack.get(stack)
     var r = new NetworkPayload(AbstractPipePayload.claimID())
     r.payload = stack2
     r.input = dirOfExtraction
     r.setDestination(destination, priority)
     sendQueue :+= r
+
+    val dest = RouterServices.getRouter(destination)
+    if (dest != null) {
+      globalItemsRegistry.trackItem(
+        stack2,
+        dest.getParent,
+        trackStage.tsSendQueue,
+        trackStage.tsPipe
+      ) // item persistence
+    }
+
   }
 
   override def getLogisticPath(
