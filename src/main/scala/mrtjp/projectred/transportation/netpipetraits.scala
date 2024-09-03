@@ -229,7 +229,6 @@ trait TNetworkPipe
   protected def countInTransit(key: ItemKey) = transitQueue(key)
 
   private def dispatchQueuedPayload(r: NetworkPayload) {
-    log.debug(s"dispatchQueuedPayload ${r}")
     injectPayload(r, r.input)
     val dest = RouterServices.getRouter(r.destinationIP)
     if (dest != null) {
@@ -389,7 +388,6 @@ trait TNetworkPipe
   }
 
   override def passToInventory(r: NetworkPayload): Boolean = {
-    log.debug(s"passToInventory($r)")
     val savedStack = r.payload.copy
     val passResult = super.passToInventory(r)
     if (passResult) {
@@ -401,7 +399,6 @@ trait TNetworkPipe
   }
 
   override def injectPayload(r: NetworkPayload, in: Int) = {
-    log.debug(s"injectPayload ${r} ${in}")
     super.injectPayload(r, in)
     if (r.netPriority == Priorities.WANDERING)
       r.tickPayloadWander()
@@ -448,7 +445,6 @@ trait TNetworkPipe
       priority: NetworkPriority,
       destination: Int
   ) {
-    log.debug(s"queueStackToSend ${stack}")
     val stack2 = ItemKeyStack.get(stack)
     var r = new NetworkPayload(AbstractPipePayload.claimID())
     r.payload = stack2

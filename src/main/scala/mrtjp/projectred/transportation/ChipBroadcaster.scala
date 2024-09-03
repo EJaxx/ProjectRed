@@ -19,7 +19,6 @@ trait TActiveBroadcastStack extends RoutingChip {
       requester: IWorldRequester,
       priority: Priorities.Priority
   ) {
-    log.debug(s"addOrder($stack,$requester)")
     globalItemsRegistry.trackItem(
       stack,
       requester,
@@ -255,7 +254,6 @@ class ChipBroadcaster
   override def getBroadcastPriority = preference
 
   override def onRemoved() {
-    log.debug(s"onRemoved(1)")
     while (hasOrders) {
       val BroadcastObject(s, r) = popAll()
       r.itemLost(s)
