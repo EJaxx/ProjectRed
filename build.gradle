@@ -3,3 +3,7 @@
 plugins {
     id 'com.gtnewhorizons.gtnhconvention'
 }
+
+dependencies {
+    api 'org.scala-lang:scala-library:2.11.12'
+}

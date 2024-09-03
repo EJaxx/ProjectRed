@@ -27,3 +27,9 @@ whitelist.json
 *.iws
 src/main/resources/mixins.*.json
 *.bat
+/.vscode/
+.stfolder
+.stversions
+/.bloop/
+/.metals/
+.stignore
