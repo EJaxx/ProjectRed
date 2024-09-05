@@ -18,6 +18,12 @@ trait TActiveBroadcastStack extends RoutingChip {
       requester: IWorldRequester,
       priority: Priorities.Priority
   ) {
+    globalItemsRegistry.trackItem(
+      stack,
+      requester,
+      trackStage.tsNone,
+      trackStage.tsOrder
+    ) // item persistence
     orders.find(p =>
       p.stack.key == stack.key && p.requester == requester
     ) match {
@@ -132,6 +138,12 @@ trait TActiveBroadcastStack extends RoutingChip {
 
           if (removed > 0) {
             val toSend = stack.key.makeStack(removed)
+            globalItemsRegistry.trackItem(
+              ItemKeyStack.get(toSend),
+              req,
+              trackStage.tsOrder,
+              trackStage.tsSendQueue
+            ) // item persistence
             routeLayer.queueStackToSend(
               toSend,
               invProvider.getInterfacedSide,

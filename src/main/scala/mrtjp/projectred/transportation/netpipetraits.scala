@@ -411,10 +411,22 @@ trait TNetworkPipe
   }
 
   override def itemReceived(stack: ItemKeyStack) {
+    globalItemsRegistry.trackItem(
+      stack,
+      this,
+      trackStage.tsPipe,
+      trackStage.tsNone
+    ) // item persistence
     transitQueue.remove(stack.key, stack.stackSize)
   }
 
   override def itemLost(stack: ItemKeyStack) {
+    globalItemsRegistry.trackItem(
+      stack,
+      this,
+      trackStage.tsPipe,
+      trackStage.tsNone
+    ) // item persistence
     transitQueue.remove(stack.key, stack.stackSize)
   }
 
@@ -435,6 +447,17 @@ trait TNetworkPipe
     r.input = dirOfExtraction
     r.setDestination(destination, priority)
     sendQueue :+= r
+
+    val dest = RouterServices.getRouter(destination)
+    if (dest != null) {
+      globalItemsRegistry.trackItem(
+        stack2,
+        dest.getParent,
+        trackStage.tsSendQueue,
+        trackStage.tsPipe
+      ) // item persistence
+    }
+
   }
 
   override def getLogisticPath(

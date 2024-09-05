@@ -52,7 +52,10 @@ class ChipStockKeeper
       val stockToKeep =
         if (requestMode == 2) Int.MaxValue else filt.getItemCount(keyStack.key)
       val inInventory =
-        inv.getItemCount(keyStack.key) + getEnroute(eq, keyStack.key)
+        inv.getItemCount(keyStack.key) + globalItemsRegistry.countOnRoute(
+          routeLayer.getWorldRouter,
+          eq.apply(keyStack.key)
+        )
       val spaceInInventory =
         routeLayer.getRequester.getActiveFreeSpace(keyStack.key)
       var toRequest = math.min(stockToKeep - inInventory, spaceInInventory)
@@ -79,10 +82,6 @@ class ChipStockKeeper
 
     remainingDelay = operationDelay + throttleDelay
   }
-
-  def getEnroute(eq: ItemEquality, item: ItemKey) =
-    routeLayer.getWorldRouter.getContainer.transitQueue
-      .count(eq.matches(item, _))
 
   override def weakTileChanges = true
 

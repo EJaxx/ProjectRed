@@ -57,6 +57,7 @@ object RouterServices {
     routers = Array[Router]()
     UUIDTable = HashMap[UUID, Int]()
     Router.reboot()
+    globalItemsRegistry.reboot()
   }
 }
 
